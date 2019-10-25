@@ -55,7 +55,7 @@ import sun.security.x509.IPAddressName;
  * @author Meep
  */
 public class ChatMainForm extends JFrame {
-    
+
     //private String InetAddress.getLocalHost() = "10.28.3.87";
     private Socket conn;
     private TagReader reader;
@@ -64,15 +64,25 @@ public class ChatMainForm extends JFrame {
     List<PeerThread> listOfPeerList = new ArrayList<>();
     private final int PortNumber;
     private ServerThread serverThread;
+
     private static int numOFriend = 0;
-    private static String Accountid = "Sub";
+    private static int numORequest = 0;
+    private static int numOGroup = 0;
+
+    List<JButton> listOfGroupButton = new ArrayList<>(); // lưu cac button của tab Group    
+
+    private static String Accountid = "Sub"; // store the current accountname;
     private List<String> Friendslist = new ArrayList<String>();
     private List<Integer> FriendStatus = new ArrayList<>();
     private List<JTextArea> txtChat = new ArrayList<>();
     private static List<User> UserFriendsList = new ArrayList<>();
-    private static String final_sendUser = "xx";
+//    private static String final_sendUser = "xx";
     private String[] UserInformation = {""};
     private String info = ""; // use to store the param send from LoginForm to ChatMainform, so that it can be past to Search
+
+    private String[] GroupName; // lưu toan bo group ma account login đang tồn tại
+    private List<User> GroupMember = new ArrayList<>();
+    private Boolean LeaveGr = false;
 
     /**
      * Creates new form ChatMainForm
@@ -82,7 +92,7 @@ public class ChatMainForm extends JFrame {
      * @param friendList
      * @throws java.io.IOException
      */
-    public ChatMainForm(String userInfor, List<User> friendList) throws IOException {
+    public ChatMainForm(String userInfor, List<User> friendList) throws IOException, Exception {
         resetallVar(); // reset tất cả các biến toan cuc, để từ loginfrom tới chatmainform ko bi loi bi dang nhap 2 tai khoan khac nhau;
         info = userInfor;
         userInfor = userInfor.substring(1, userInfor.length() - 1);
@@ -133,7 +143,7 @@ public class ChatMainForm extends JFrame {
         jScrollPane2 = new javax.swing.JScrollPane();
         RequestPanel = new javax.swing.JPanel();
         jScrollPane3 = new javax.swing.JScrollPane();
-        jPanel2 = new javax.swing.JPanel();
+        GroupPanel = new javax.swing.JPanel();
         Refresh = new javax.swing.JButton();
         jScrollPane5 = new javax.swing.JScrollPane();
         txtMessLog = new javax.swing.JTextArea();
@@ -186,18 +196,18 @@ public class ChatMainForm extends JFrame {
 
         jTabbedPane2.addTab("Request", jScrollPane2);
 
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 298, Short.MAX_VALUE)
+        javax.swing.GroupLayout GroupPanelLayout = new javax.swing.GroupLayout(GroupPanel);
+        GroupPanel.setLayout(GroupPanelLayout);
+        GroupPanelLayout.setHorizontalGroup(
+            GroupPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 491, Short.MAX_VALUE)
         );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        GroupPanelLayout.setVerticalGroup(
+            GroupPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 610, Short.MAX_VALUE)
         );
 
-        jScrollPane3.setViewportView(jPanel2);
+        jScrollPane3.setViewportView(GroupPanel);
 
         jTabbedPane2.addTab("Group", jScrollPane3);
 
@@ -371,18 +381,24 @@ public class ChatMainForm extends JFrame {
         FriendStatus.clear();
         jPanel1.removeAll();
 
-        AttributeSetup();
+        try {
+            AttributeSetup();
+        } catch (Exception ex) {
+            Logger.getLogger(ChatMainForm.class.getName()).log(Level.SEVERE, null, ex);
+        }
         if (txtChat.size() == 0) {
-            if(UserFriendsList!=null)
+            if (UserFriendsList != null) {
                 for (int i = 0; i < UserFriendsList.size(); i++) {
                     JTextArea pane = new JTextArea();
                     pane.setBounds(i, i, WIDTH, HEIGHT);
                     txtChat.add(pane);
                 }
+            }
         }
         try {
             setTabValue_Friends();
             setTabValue_Requests();
+            setTabValue_Group();
             //jPanel1.setVisible(true);
         } catch (IOException ex) {
             Logger.getLogger(ChatMainForm.class.getName()).log(Level.SEVERE, null, ex);
@@ -429,14 +445,14 @@ public class ChatMainForm extends JFrame {
 
     private void jMenuItem4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem4ActionPerformed
         try {
-            GroupForm group= new GroupForm(info, UserFriendsList);
+            GroupForm group = new GroupForm(info, UserFriendsList);
             group.setVisible(true);
         } catch (IOException ex) {
             Logger.getLogger(ChatMainForm.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_jMenuItem4ActionPerformed
 
-    private void sendFile(int i) throws IOException{
+    private void sendFile(int i) throws IOException {
         if (UserFriendsList.get(i).getStatus() == 0) {
             JOptionPane.showMessageDialog(null, "Your friend isn't online");
             return;
@@ -447,37 +463,38 @@ public class ChatMainForm extends JFrame {
         //String input;
         //input = buffer.readLine();
         //if (input.length() < 3 && input.contains("@f")) {
-            JFileChooser choosefile = new JFileChooser("d:");
-            choosefile.setAcceptAllFileFilterUsed(false);
-            choosefile.setDialogTitle("Select file");
-            FileNameExtensionFilter restrict = new FileNameExtensionFilter("Only .txt files", "txt");
-            choosefile.addChoosableFileFilter(restrict);
-            int conditionOfChooseFile = choosefile.showOpenDialog(null);
-            if (conditionOfChooseFile == JFileChooser.APPROVE_OPTION) {
-                File file = new File(choosefile.getSelectedFile().getAbsolutePath());
-                if (file.length() <= 5242880) {
-                    bis = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
-                    //FileInputStream fis = new FileInputStream(file);
-                    //bis = new BufferedInputStream(fis);
-                    //byte[] myarray = new byte[(int)file.length()];
-                    //bis.read(myarray,0,myarray.length);
-                    //bis = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
-                    StringWriter stringW = new StringWriter();
-                    stringW.append("@f:<" + UserFriendsList.get(i).getID() + "><" + UserInformation[0] + "><" + UserInformation[1] + "><" + file.getName() + ">");
-                    int n;
-                    char[] buff = new char[1024];
-                    while ((n = bis.read(buff)) != -1) {
-                        stringW.write(buff, 0, n);
-                    }
-                    serverThread.sendMessage(stringW.toString());
-                    printMessage(i, "You sent the file (" + file.getPath() + ") to your friend!!!");
-                    //ChatHistory.setText(ChatHistory.getText() + "\n You sent the file (" + file.getPath() + ") to your friend!!!");
-                } else {
-                    JOptionPane.showMessageDialog(this, "File must be less and equal than 5MB!!!!\n You can't send this file.");
+        JFileChooser choosefile = new JFileChooser("d:");
+        choosefile.setAcceptAllFileFilterUsed(false);
+        choosefile.setDialogTitle("Select file");
+        FileNameExtensionFilter restrict = new FileNameExtensionFilter("Only .txt files", "txt");
+        choosefile.addChoosableFileFilter(restrict);
+        int conditionOfChooseFile = choosefile.showOpenDialog(null);
+        if (conditionOfChooseFile == JFileChooser.APPROVE_OPTION) {
+            File file = new File(choosefile.getSelectedFile().getAbsolutePath());
+            if (file.length() <= 5242880) {
+                bis = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
+                //FileInputStream fis = new FileInputStream(file);
+                //bis = new BufferedInputStream(fis);
+                //byte[] myarray = new byte[(int)file.length()];
+                //bis.read(myarray,0,myarray.length);
+                //bis = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
+                StringWriter stringW = new StringWriter();
+                stringW.append("@f:<" + UserFriendsList.get(i).getID() + "><" + UserInformation[0] + "><" + UserInformation[1] + "><" + file.getName() + ">");
+                int n;
+                char[] buff = new char[1024];
+                while ((n = bis.read(buff)) != -1) {
+                    stringW.write(buff, 0, n);
                 }
+                serverThread.sendMessage(stringW.toString());
+                printMessage(i, "You sent the file (" + file.getPath() + ") to your friend!!!");
+                //ChatHistory.setText(ChatHistory.getText() + "\n You sent the file (" + file.getPath() + ") to your friend!!!");
+            } else {
+                JOptionPane.showMessageDialog(this, "File must be less and equal than 5MB!!!!\n You can't send this file.");
             }
-            txtMessage.setText("");
+        }
+        txtMessage.setText("");
     }
+
     private void choose_Client() throws IOException {
         int j = -1;
         for (int i = 0; i < listOfFriendButton.size(); i++) {
@@ -532,6 +549,8 @@ public class ChatMainForm extends JFrame {
 
                 } catch (IOException ex) {
                     Logger.getLogger(ChatMainForm.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (Exception ex) {
+                    Logger.getLogger(ChatMainForm.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         });
@@ -562,38 +581,26 @@ public class ChatMainForm extends JFrame {
             int co_y = 50 * i;
             int panel_weight = 220;
             int panel_height = 50;
-            numOFriend = name.size();
 
             //display friend in tab
             for (i = 0; i < name.size(); i++) {
                 co_y = 50 * i;
                 String temp = "JButton_" + name.get(i);
                 JButton btn = new JButton(temp);
-                //BufferedReader buffered = null;
                 listOfFriendButton.add(btn);
-                //String username = UserFriendsList.get(i).getIP_addr();
-                //String IP_address = UserFriendsList.get(i).getUser_name();
-                //String myIP = getPublicIP();
-//             btn.setOnAction(new EventHandler<ActionEvent>() {
-//        @Override public void handle(ActionEvent actionEvent) {
-//            System.out.println("from: "+temp);
-
-//        }
-//    });
                 btn.addActionListener(new java.awt.event.ActionListener() {
 
                     @Override
                     public void actionPerformed(java.awt.event.ActionEvent evt) {
-                        int j=0;
+                        int j = 0;
                         for (int i = 0; i < listOfFriendButton.size(); i++) {
                             if (listOfFriendButton.get(i) != btn) {
                                 listOfFriendButton.get(i).setBackground(new JButton().getBackground());
                                 txtChat.get(i).setVisible(false);
+                            } else {
+                                j = i;
                             }
-                            else 
-                                j=i;
-                            
-                            
+
                         }
                         btn.setBackground(Color.cyan);
                         txtMessLog.setVisible(false);
@@ -601,12 +608,12 @@ public class ChatMainForm extends JFrame {
                         txtChat.get(j).setRows(5);
                         txtChat.get(j).setEditable(false);
                         jScrollPane5.setViewportView(txtChat.get(j));
-                        txtChat.get(j).setVisible(true);     
+                        txtChat.get(j).setVisible(true);
                         txtMessLog.setEditable(false);
 //                        txtMessLog.setColumns(20);
 //                        txtMessLog.setRows(5);
 //                        jScrollPane5.setViewportView(txtMessLog);
-                        
+
                     }
 
                 });
@@ -619,12 +626,9 @@ public class ChatMainForm extends JFrame {
                     jPanel1.add(onl_icon);
                     Socket socket = null;
                     try {
-                        //System.out.println(InetAddress.getByAddress(UserFriendsList.get(i).getIP_addr().getBytes()).getCanonicalHostName());
                         System.out.println(UserFriendsList.get(i).getID() + 9000);
-
-                        //socket = new Socket(InetAddress.getByAddress(UserFriendsList.get(i).getIP_addr().getBytes()).getCanonicalHostName(), UserFriendsList.get(i).getID()+9000);
                         socket = new Socket("localhost", UserFriendsList.get(i).getID() + 9000);
-                        PeerThread peer = new PeerThread(socket, txtChat.get(i), txtMessLog, UserFriendsList.get(i).getID(),Integer.valueOf(UserInformation[0]));
+                        PeerThread peer = new PeerThread(socket, txtChat.get(i), txtMessLog, UserFriendsList.get(i).getID(), Integer.valueOf(UserInformation[0]));
                         listOfPeerList.add(peer);
                         peer.start();
                     } catch (IOException | NumberFormatException e) {
@@ -635,11 +639,6 @@ public class ChatMainForm extends JFrame {
                         }
 
                     }
-//                    if (txtChat.get(i)==null){
-//                        JTextArea pane = new JTextArea();
-//                        txtChat.add(pane);
-//                    }
-
                 } else {
                     JLabel onl_icon = new JLabel();
                     onl_icon.setText("");
@@ -665,19 +664,17 @@ public class ChatMainForm extends JFrame {
         RequestPanel.setPreferredSize(new Dimension(325, 635));
         String user_info = "<" + Accountid + ">";
         String[] request = {Tags.FIND_REQUEST, user_info};
-
-        System.out.println("login info: " + user_info);
         try {
             TagValue tv = new TagValue(request[0], request[1].getBytes());
             writer.writeTag(tv);
             writer.flush();
             tv = reader.getTagValue();
-            System.out.println(tv.getTag());
             if (tv.getTag().equals(Tags.SUCCESS)) {
 
                 String allRequest = new String(tv.getContent()); // not formatted;
 
                 List<User> usrRequest = String2User(allRequest);
+                numORequest = usrRequest.size();
                 for (int i = 0; i < usrRequest.size(); i++) {
                     String RequestName = usrRequest.get(i).getUser_name();
                     JLabel label = new JLabel();
@@ -789,6 +786,7 @@ public class ChatMainForm extends JFrame {
 
             } else {
 //                JOptionPane.showMessageDialog(this, "Wrong Username or Password");
+                System.out.println("There is no Request" + tv.getTag());
             }
         } catch (Exception e) {
             //System.err.println("Network error");
@@ -797,9 +795,141 @@ public class ChatMainForm extends JFrame {
 
     }
 
-    private void AttributeSetup() {
+    private void setTabValue_Group() {
+        Component[] componentList = GroupPanel.getComponents();
+        for (Component c : componentList) {
+            c.setVisible(false);
+        }
+        GroupPanel.removeAll();
+        JButton Createbtn = new JButton();
+        Createbtn.setIcon(new javax.swing.ImageIcon(getClass().getResource("/chat_assignment/res/iconfinder_Pinterest_UI-12_2540586.png")));
+        Createbtn.setText("Create");
+        Createbtn.setBounds(10, 0, 130, 30);
+        Createbtn.setBackground(Color.green);
+        Createbtn.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                try {
+                    GroupForm group = new GroupForm(info, UserFriendsList);
+                    group.setVisible(true);
+                } catch (IOException ex) {
+                    Logger.getLogger(ChatMainForm.class.getName()).log(Level.SEVERE, null, ex);
+                }
 
-        updateFriendlist();
+            }
+        });
+
+        JButton Leavebtn = new JButton();
+        Leavebtn.setIcon(new javax.swing.ImageIcon(getClass().getResource("/chat_assignment/res/iconfinder_Exit_export_out_send_sending_archive_outside_1886941.png")));
+        Leavebtn.setText("Leave");
+        Leavebtn.setBounds(150, 0, 130, 30);
+        Leavebtn.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                if (Leavebtn.getBackground() != Color.red) {
+                    JLabel tutor= new JLabel();
+                    tutor.setText("Choose the Group you want to leave");
+                    tutor.setBounds(10, 20, 200, 30);
+                    GroupPanel.add(tutor);
+                    Leavebtn.setBackground(Color.red);
+                    LeaveGr = true;
+                } else {
+                    Leavebtn.setBackground(new JButton().getBackground());
+                    LeaveGr = false;
+                }
+            }
+        });
+
+        List<String> Groupname = new ArrayList<String>();
+        if (GroupName.length != 0) {
+            listOfGroupButton.clear();
+            int k = 1;
+            int i = 0;
+            int co_x = 10;
+            int co_y = 50 * i;
+            int panel_weight = 220;
+            int panel_height = 50;
+
+            //begin display  in tab group
+            for (i = 0; i < numOGroup; i++) {
+                co_y = 50 * k;
+                k++;
+                String temp = "Group_" + GroupName[i];
+                String staticGrName = GroupName[i];
+                JButton btn = new JButton(temp);
+                listOfGroupButton.add(btn);
+                /////////////////////////////////////////////////////////// DETECT EVENT PRESSED BUTTON IN GROUP TAB 
+                ///////////////////////////////////////////////////////////
+                ///////////////////////////////////////////////////////////
+                btn.addActionListener(new java.awt.event.ActionListener() {
+                    @Override
+                    public void actionPerformed(java.awt.event.ActionEvent evt) {
+                        if (LeaveGr == false) {
+                            int j = 0;
+                            for (int i = 0; i < listOfGroupButton.size(); i++) { //set other group button back to gray color
+                                if (listOfGroupButton.get(i) != btn) {
+                                    listOfGroupButton.get(i).setBackground(new JButton().getBackground());
+                                } else {
+                                    j = i;
+                                }
+                            }
+                            System.out.println("Pressed Group name: " + btn.getText());
+                            btn.setBackground(Color.ORANGE);
+                        } else {
+                            btn.setBackground(Color.red);
+                            int confirm = JOptionPane.showConfirmDialog(btn, "You want to leave? After you press YES action cannot be undo"); //confirm if user really want to leave the group ( choose the group name to leave)
+                            if (confirm == 0) {
+                                try {
+                                    LeaveGroup(); // Do Leave Group Action
+                                } catch (IOException ex) {
+                                    Logger.getLogger(ChatMainForm.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+                            } else {
+                                Leavebtn.setBackground(new JButton().getBackground());
+                                btn.setBackground(new JButton().getBackground());
+                            }
+                            LeaveGr = false;
+                        }
+                    }
+
+                    private void LeaveGroup() throws UnknownHostException, IOException {
+                        conn = new Socket(InetAddress.getLocalHost(), 9000);
+                        reader = new TagReader(conn.getInputStream());
+                        writer = new TagWriter(conn.getOutputStream());
+
+                        String[] request = {Tags.LEAVE, "<" + staticGrName + " " + Accountid + ">"};
+                        try {
+                            TagValue tv = new TagValue(request[0], request[1].getBytes());
+                            writer.writeTag(tv);
+                            writer.flush();
+                            tv = reader.getTagValue();
+                            conn.close();
+                            if (tv.getTag().equals(Tags.SUCCESS)) {
+                                JOptionPane.showMessageDialog(btn, "You have Leave the Group. Plese Refresh ");
+                            } else {
+//                JOptionPane.showMessageDialog(this, "Wrong ");
+                                System.out.println("Fail setup4Group");
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                btn.setBounds(co_x, co_y, panel_weight, panel_height);
+                btn.setText(GroupName[i]);
+
+                GroupPanel.add(Createbtn);
+                GroupPanel.add(Leavebtn);
+                GroupPanel.add(btn);
+            }
+        }
+    }
+
+    private void AttributeSetup() throws Exception {
+
+        updateFriendlist(); //set value for FriendList
+        setup4Group(); // get all the group name and group member store in GroupName (String[]), GroupMember(list<user>)
+        System.out.println("3 numO: " + numOFriend + " " + numORequest + " " + numOGroup);
 //        txtMesslog.setLineWrap(true);
 //        txtMesslog.setWrapStyleWord(true);
 //        txtMessage.requestFocus();
@@ -810,8 +940,12 @@ public class ChatMainForm extends JFrame {
         jScrollPane1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         jScrollPane2.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         jScrollPane2.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        jScrollPane3.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        jScrollPane3.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 
         jPanel1.setPreferredSize(new Dimension(273, 50 * numOFriend));
+        RequestPanel.setPreferredSize(new Dimension(273, 50 * numORequest));
+        GroupPanel.setPreferredSize(new Dimension(273, 50 * numOGroup));
 
         jScrollPane1.getVerticalScrollBar().setUnitIncrement(10);
         jScrollPane2.getVerticalScrollBar().setUnitIncrement(10);
@@ -825,12 +959,11 @@ public class ChatMainForm extends JFrame {
 
         listOfFriendButton = new ArrayList<>();
         listOfPeerList = new ArrayList<>();
-        numOFriend = 0;
         Accountid = "Sub";
         Friendslist = new ArrayList<String>();
         FriendStatus = new ArrayList<>();
         UserFriendsList = new ArrayList<>();
-        final_sendUser = "xx";
+//        final_sendUser = "xx";
         info = ""; // use to store the param send from LoginForm to ChatMainform, so that it can be past to Search
 
     }
@@ -894,7 +1027,6 @@ public class ChatMainForm extends JFrame {
 //        systemipaddress = sc.readLine().trim();
 //        return systemipaddress;
 //    }
-
     private void SendMessage(int i) throws IOException {
         if (UserFriendsList.get(i).getStatus() == 0) {
             JOptionPane.showMessageDialog(null, "Your friend isn't online");
@@ -932,12 +1064,12 @@ public class ChatMainForm extends JFrame {
             txtMessage.setText("");
 
         } else {
-        StringWriter stringW = new StringWriter();
-        stringW.append("@a:<" + UserFriendsList.get(i).getID() + "><" + UserInformation[0] + ">[" + UserInformation[1] + "]:" + input);
-        serverThread.sendMessage(stringW.toString());
-        if (input != null) {
-            printMessage(i, input);
-        }
+            StringWriter stringW = new StringWriter();
+            stringW.append("@a:<" + UserFriendsList.get(i).getID() + "><" + UserInformation[0] + ">[" + UserInformation[1] + "]:" + input);
+            serverThread.sendMessage(stringW.toString());
+            if (input != null) {
+                printMessage(i, input);
+            }
         }
     }
 
@@ -965,9 +1097,9 @@ public class ChatMainForm extends JFrame {
 
             if (tv2.getTag().equals(Tags.SUCCESS)) {
                 users = getUsers(tv2.getContent());
-                for (User usr : users) {
-                    System.out.println("get this: " + usr.getUser_name());
-                }
+//                for (User usr : users) {
+//                    System.out.println("get this: " + usr.getUser_name());
+//                }
             }
             conn.close();
         } catch (Exception e) {
@@ -1033,6 +1165,7 @@ public class ChatMainForm extends JFrame {
                         FriendStatus.add((UserFriendsList.get(i).getStatus()));
                         Friendslist.add(x);
                     }
+                    numOFriend = Friendslist.size();
                 }
             }
         } else {
@@ -1041,6 +1174,7 @@ public class ChatMainForm extends JFrame {
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton File;
+    private javax.swing.JPanel GroupPanel;
     private javax.swing.JButton Refresh;
     private javax.swing.JPanel RequestPanel;
     private javax.swing.JButton Send;
@@ -1053,7 +1187,6 @@ public class ChatMainForm extends JFrame {
     private javax.swing.JMenuItem jMenuItem3;
     private javax.swing.JMenuItem jMenuItem4;
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
@@ -1079,4 +1212,54 @@ public class ChatMainForm extends JFrame {
         }
         return lst;
     }
+
+    private void setup4Group() throws UnknownHostException, IOException, Exception {
+        conn = new Socket(InetAddress.getLocalHost(), 9000);
+        reader = new TagReader(conn.getInputStream());
+        writer = new TagWriter(conn.getOutputStream());
+
+        String[] request = {Tags.GET_MY_GROUP, "<" + Accountid + ">"};
+        try {
+            TagValue tv = new TagValue(request[0], request[1].getBytes());
+            writer.writeTag(tv);
+            writer.flush();
+            tv = reader.getTagValue();
+            conn.close();
+            if (tv.getTag().equals(Tags.SUCCESS)) {
+                GroupName = getGroupName(tv.getContent()); // Store all the name
+                numOGroup = GroupName.length;
+                for (int i = 0; i < GroupName.length; i++) { //Begin storing the member;                    
+                    conn = new Socket(InetAddress.getLocalHost(), 9000);
+                    reader = new TagReader(conn.getInputStream());
+                    writer = new TagWriter(conn.getOutputStream());
+                    String[] req = {Tags.GET_MEMBER, "<" + GroupName[i] + ">"};
+                    tv = new TagValue(req[0], req[1].getBytes());
+                    writer.writeTag(tv);
+                    writer.flush();
+                    tv = reader.getTagValue();
+                    if (tv.getTag().equals(Tags.SUCCESS)) {
+                        GroupMember = (getUsers(tv.getContent()));
+                    } else {
+                        System.out.println("get member: " + tv.getTag());
+                    }
+                }
+            } else {
+//                JOptionPane.showMessageDialog(this, "Wrong ");
+                System.out.println("Fail setup4Group");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private String[] getGroupName(byte[] content) {
+        String string = new String(content);
+        string = string.replace("<", "");
+        string = string.replace(">", "");
+
+        String[] arrString = string.split("\\|");
+        return arrString;
+    }
+
 }

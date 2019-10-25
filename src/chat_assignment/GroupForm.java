@@ -131,7 +131,7 @@ public class GroupForm extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-        lbAddList.setText("Already Add: ");
+        lbAddList.setText("Group Member:  ");
 
         jLabel3.setText("Group Name:");
 
@@ -193,7 +193,7 @@ public class GroupForm extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnCreateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCreateActionPerformed
-        if (GroupMember.size() > 1) {
+        if (GroupMember.size() > 0) {
             GroupName = txtGroupName.getText();
             if (!GroupMember.contains(AccountName)) {
                 GroupMember.add(AccountName);
@@ -207,6 +207,7 @@ public class GroupForm extends javax.swing.JFrame {
                 Logger.getLogger(GroupForm.class.getName()).log(Level.SEVERE, null, ex);
             }
             JOptionPane.showMessageDialog(this, "Complete");
+            dispose();
         }
         else
             JOptionPane.showMessageDialog(this, "Please choose your group Members");
