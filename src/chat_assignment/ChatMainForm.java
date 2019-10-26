@@ -445,8 +445,12 @@ public class ChatMainForm extends JFrame {
 
     private void jMenuItem4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem4ActionPerformed
         try {
+            if(info != null && UserFriendsList!=null){
             GroupForm group = new GroupForm(info, UserFriendsList);
             group.setVisible(true);
+            }
+            else
+                JOptionPane.showMessageDialog(null, "You do not have a friend to create Group");
         } catch (IOException ex) {
             Logger.getLogger(ChatMainForm.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -810,8 +814,12 @@ public class ChatMainForm extends JFrame {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 try {
-                    GroupForm group = new GroupForm(info, UserFriendsList);
-                    group.setVisible(true);
+                    if (info != null && UserFriendsList != null) {
+                        GroupForm group = new GroupForm(info, UserFriendsList);
+                        group.setVisible(true);
+                    }
+                    else
+                JOptionPane.showMessageDialog(null, "You do not have a friend to create Group");
                 } catch (IOException ex) {
                     Logger.getLogger(ChatMainForm.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -827,7 +835,7 @@ public class ChatMainForm extends JFrame {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 if (Leavebtn.getBackground() != Color.red) {
-                    JLabel tutor= new JLabel();
+                    JLabel tutor = new JLabel();
                     tutor.setText("Choose the Group you want to leave");
                     tutor.setBounds(10, 20, 200, 30);
                     GroupPanel.add(tutor);
@@ -841,86 +849,88 @@ public class ChatMainForm extends JFrame {
         });
 
         List<String> Groupname = new ArrayList<String>();
-        if (GroupName.length != 0) {
-            listOfGroupButton.clear();
-            int k = 1;
-            int i = 0;
-            int co_x = 10;
-            int co_y = 50 * i;
-            int panel_weight = 220;
-            int panel_height = 50;
+        if (GroupName != null) {
+            if (GroupName.length != 0) {
+                listOfGroupButton.clear();
+                int k = 1;
+                int i = 0;
+                int co_x = 10;
+                int co_y = 50 * i;
+                int panel_weight = 220;
+                int panel_height = 50;
 
-            //begin display  in tab group
-            for (i = 0; i < numOGroup; i++) {
-                co_y = 50 * k;
-                k++;
-                String temp = "Group_" + GroupName[i];
-                String staticGrName = GroupName[i];
-                JButton btn = new JButton(temp);
-                listOfGroupButton.add(btn);
-                /////////////////////////////////////////////////////////// DETECT EVENT PRESSED BUTTON IN GROUP TAB 
-                ///////////////////////////////////////////////////////////
-                ///////////////////////////////////////////////////////////
-                btn.addActionListener(new java.awt.event.ActionListener() {
-                    @Override
-                    public void actionPerformed(java.awt.event.ActionEvent evt) {
-                        if (LeaveGr == false) {
-                            int j = 0;
-                            for (int i = 0; i < listOfGroupButton.size(); i++) { //set other group button back to gray color
-                                if (listOfGroupButton.get(i) != btn) {
-                                    listOfGroupButton.get(i).setBackground(new JButton().getBackground());
+                //begin display  in tab group
+                for (i = 0; i < numOGroup; i++) {
+                    co_y = 50 * k;
+                    k++;
+                    String temp = "Group_" + GroupName[i];
+                    String staticGrName = GroupName[i];
+                    JButton btn = new JButton(temp);
+                    listOfGroupButton.add(btn);
+                    /////////////////////////////////////////////////////////// DETECT EVENT PRESSED BUTTON IN GROUP TAB 
+                    ///////////////////////////////////////////////////////////
+                    ///////////////////////////////////////////////////////////
+                    btn.addActionListener(new java.awt.event.ActionListener() {
+                        @Override
+                        public void actionPerformed(java.awt.event.ActionEvent evt) {
+                            if (LeaveGr == false) {
+                                int j = 0;
+                                for (int i = 0; i < listOfGroupButton.size(); i++) { //set other group button back to gray color
+                                    if (listOfGroupButton.get(i) != btn) {
+                                        listOfGroupButton.get(i).setBackground(new JButton().getBackground());
+                                    } else {
+                                        j = i;
+                                    }
+                                }
+                                System.out.println("Pressed Group name: " + btn.getText());
+                                btn.setBackground(Color.ORANGE);
+                            } else {
+                                btn.setBackground(Color.red);
+                                int confirm = JOptionPane.showConfirmDialog(btn, "You want to leave? After you press YES action cannot be undo"); //confirm if user really want to leave the group ( choose the group name to leave)
+                                if (confirm == 0) {
+                                    try {
+                                        LeaveGroup(); // Do Leave Group Action
+                                    } catch (IOException ex) {
+                                        Logger.getLogger(ChatMainForm.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
                                 } else {
-                                    j = i;
+                                    Leavebtn.setBackground(new JButton().getBackground());
+                                    btn.setBackground(new JButton().getBackground());
                                 }
+                                LeaveGr = false;
                             }
-                            System.out.println("Pressed Group name: " + btn.getText());
-                            btn.setBackground(Color.ORANGE);
-                        } else {
-                            btn.setBackground(Color.red);
-                            int confirm = JOptionPane.showConfirmDialog(btn, "You want to leave? After you press YES action cannot be undo"); //confirm if user really want to leave the group ( choose the group name to leave)
-                            if (confirm == 0) {
-                                try {
-                                    LeaveGroup(); // Do Leave Group Action
-                                } catch (IOException ex) {
-                                    Logger.getLogger(ChatMainForm.class.getName()).log(Level.SEVERE, null, ex);
-                                }
-                            } else {
-                                Leavebtn.setBackground(new JButton().getBackground());
-                                btn.setBackground(new JButton().getBackground());
-                            }
-                            LeaveGr = false;
                         }
-                    }
 
-                    private void LeaveGroup() throws UnknownHostException, IOException {
-                        conn = new Socket(InetAddress.getLocalHost(), 9000);
-                        reader = new TagReader(conn.getInputStream());
-                        writer = new TagWriter(conn.getOutputStream());
+                        private void LeaveGroup() throws UnknownHostException, IOException {
+                            conn = new Socket(InetAddress.getLocalHost(), 9000);
+                            reader = new TagReader(conn.getInputStream());
+                            writer = new TagWriter(conn.getOutputStream());
 
-                        String[] request = {Tags.LEAVE, "<" + staticGrName + " " + Accountid + ">"};
-                        try {
-                            TagValue tv = new TagValue(request[0], request[1].getBytes());
-                            writer.writeTag(tv);
-                            writer.flush();
-                            tv = reader.getTagValue();
-                            conn.close();
-                            if (tv.getTag().equals(Tags.SUCCESS)) {
-                                JOptionPane.showMessageDialog(btn, "You have Leave the Group. Plese Refresh ");
-                            } else {
+                            String[] request = {Tags.LEAVE, "<" + staticGrName + " " + Accountid + ">"};
+                            try {
+                                TagValue tv = new TagValue(request[0], request[1].getBytes());
+                                writer.writeTag(tv);
+                                writer.flush();
+                                tv = reader.getTagValue();
+                                conn.close();
+                                if (tv.getTag().equals(Tags.SUCCESS)) {
+                                    JOptionPane.showMessageDialog(btn, "You have Leave the Group. Plese Refresh ");
+                                } else {
 //                JOptionPane.showMessageDialog(this, "Wrong ");
-                                System.out.println("Fail setup4Group");
+                                    System.out.println("Fail setup4Group");
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
-                        } catch (Exception e) {
-                            e.printStackTrace();
                         }
-                    }
-                });
-                btn.setBounds(co_x, co_y, panel_weight, panel_height);
-                btn.setText(GroupName[i]);
+                    });
+                    btn.setBounds(co_x, co_y, panel_weight, panel_height);
+                    btn.setText(GroupName[i]);
 
-                GroupPanel.add(Createbtn);
-                GroupPanel.add(Leavebtn);
-                GroupPanel.add(btn);
+                    GroupPanel.add(Createbtn);
+                    GroupPanel.add(Leavebtn);
+                    GroupPanel.add(btn);
+                }
             }
         }
     }
